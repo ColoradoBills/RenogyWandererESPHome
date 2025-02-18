@@ -16,6 +16,8 @@ Parts Required:
 
 Here is the pinout for the RJ11 connector - Remember the TX of the RJ11 goes the RX of th TTL to RS232 Module - You will have issues if you go TX to TX and RX to RX. 
 
+![RJ11 Pinout](https://github.com/ColoradoBills/RenogyWandererESPHome/blob/d81924c0b96decb94ac35d26a2b136393f8d8cc5/images/CE45E8AB-9ED6-446E-A3B0-C6F7A7CD1B8C.jpeg)
+
 Connect the RJ11 patch cable to the TTL to RS232 module. Connect the Module to your ESP board [follow the pins in th YAML code if you are using a D1 Mini 8266].
 
 Add your ESP board to Home Assistant via ESPHome addon. 
