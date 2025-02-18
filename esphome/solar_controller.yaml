@@ -1,0 +1,227 @@
+#esphome setup data - Most of this will be created when you add your board via the ESPHome Addon in Home Assistant
+esphome:
+  name: solar-controller #Change this to the name you want to use
+  friendly_name: Solar Controller #Change this to the name you want to use
+  platform: ESP8266 #Ensure you use the correct platform for your device
+  board: d1_mini #Ensure you use the correct board for your device
+  
+# Enable logging
+logger:
+  level: info
+  baud_rate: 0
+  
+time:
+ - platform: homeassistant
+   id: ha_time 
+  
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  #If you have issues with the wifi connection, uncomment the following lines and fill in the correct values
+  #manual_ip:
+   # static_ip: pick an IP address outside of your router's DHCP range
+   # gateway: your router's IP address
+   # subnet: your router's subnet
+
+# Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Solar2 Fallback Hotspot"
+    password: !secret ap_password
+web_server:
+  port: 8080
+  version: 3 # Enable the web server with the latest version 3.0
+
+captive_portal:
+  
+#If you want to save battery life, uncomment the following lines to put the device to sleep
+#deep_sleep: 
+#  id: deep_sleep_enabled
+#  run_duration: 5min
+#  sleep_duration: 55min
+
+#The rest of the code should only be changed if you know what you are doing - This is what works for my setup
+
+#Modbus uart info
+uart:
+  baud_rate: 9600
+  data_bits: 8
+  stop_bits: 1
+  parity: NONE
+  tx_pin: 01
+  rx_pin: 03
+modbus:
+  send_wait_time: 50ms
+modbus_controller:
+  - id: renogy
+    address: 0xFF
+    setup_priority: -10
+    update_interval: 3s
+
+#start of sensors
+sensor:
+#wifi sensor
+  - platform: wifi_signal
+    name: solar WiFi Signal
+    id: solar_wifi_signal
+    entity_category: diagnostic
+    update_interval: 60s
+#uptime sensor
+  - platform: uptime
+    name: Solar Uptime
+    id: solar_uptime
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    unit_of_measurement: min
+    update_interval: 60s
+    filters:
+      - lambda: return x / 60;
+  
+  #battery sensors
+  - id: solar_battery_soc
+    name: Battery Percentage Charged #Tells me how much the battery is charged in percentage
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0100
+    unit_of_measurement: '%'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 0
+
+  - id: solar_battery_voltage
+    name: Battery Voltage #Provides me with the battery voltage in Volts
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0101
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - id: solar_battery_charge_current
+    name: Panel to Battery Amps #This provides me the current going from the solar panel to the battery in Amps
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0102
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+#WYZE Cam Sensors
+  - id: solar_cam_voltage
+    name: WYZE Cam Voltage #This provides me the voltage going to the WYZE Cam from the battery in Volts
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0104
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - id: solar_cam_current
+    name: WYZE Cam Amps #This provides me the current going to the WYZE Cam from the battery in Amps
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0105
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  - id: solar_cam_watts
+    name: WYZE Cam Watts #This provides me the power going to the WYZE Cam from the battery in Watts
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0106
+    unit_of_measurement: 'W'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 0
+
+#Solar Panel Sensors
+  - id: solar_panel_voltage
+    name: Solar Panel Voltage #This provides me the voltage from the solar panel to the controller in Volts
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0107
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - id: solar_panel_current
+    name: Solar Panel to Controller Current #This provides me the current from the solar panel to the controller in Amps
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0108
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  - id: solar_panel_watts
+    name: Solar Panel Watts #This provides me the power from the solar panel to the controller in Watts
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x0109
+    unit_of_measurement: 'W'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 0
+
+#test values
+  - id: battery_min_volts
+    name: Battery Voltage Minium for Day #This provides me the minimum battery voltage for the day in Volts - This is helpful if you are troubleshooting battery issues
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x010B
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - id: battery_max_volts
+    name: Battery Voltage Max for Day #This provides me the maximum battery voltage for the day in Volts - This is helpful if you are troubleshooting battery issues
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x010C
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - id: solar_max_watts
+    name: Solar Watts Max for Day #This provides me the maximum solar watts for the day in Watts - This is helpful to ensure your panels are placed in the correct location for maximum sun exposure
+    platform: modbus_controller
+    modbus_controller_id: renogy
+    address: 0x010F
+    unit_of_measurement: 'W'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
